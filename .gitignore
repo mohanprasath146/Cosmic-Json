@@ -50,3 +50,42 @@ copilot-messages.log
 # System files
 .DS_Store
 .project/attachments/files/**
+
+# Node dependencies and common artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*.local
+.env.local
+
+# Build outputs
+dist/
+build/
+.cache/
+.vite/
+out/
+public/build/
+
+# Vercel / deployment artifacts
+.vercel/
+.vercel/output/
+.vercel/**/output/
+.vercel/project.json
+.vercel/cache/
+.vercel_build_output/
+.vercelignore
+
+# Editor and OS files
+.vscode/
+.idea/
+*.log
+Thumbs.db
+*.tmp

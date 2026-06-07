@@ -17,7 +17,10 @@
         "comments": [],
         "requiredExtensions": {
             "codexEditor": "0.27.0"
-        }
+        },
+        "validationCount": 1,
+        "validationCountAudio": 1,
+        "abbreviation": ""
     },
     "idAuthorities": {},
     "identification": {},
@@ -109,5 +112,37 @@
     "ingredients": {},
     "copyright": {
         "shortStatements": []
-    }
+    },
+    "edits": [
+        {
+            "editMap": [
+                "meta",
+                "validationCount"
+            ],
+            "value": 1,
+            "timestamp": 1780747596479,
+            "type": "user-edit",
+            "author": "unknown"
+        },
+        {
+            "editMap": [
+                "meta",
+                "validationCountAudio"
+            ],
+            "value": 1,
+            "timestamp": 1780747596479,
+            "type": "user-edit",
+            "author": "unknown"
+        },
+        {
+            "editMap": [
+                "meta",
+                "abbreviation"
+            ],
+            "value": "",
+            "timestamp": 1780747596479,
+            "type": "user-edit",
+            "author": "unknown"
+        }
+    ]
 }
