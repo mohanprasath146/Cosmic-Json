@@ -1,4 +1,4 @@
-export type AppTab = 'tree' | 'raw' | 'table' | 'diff' | 'markdown' | 'notes'
+export type AppTab = 'tree' | 'raw' | 'table' | 'diff' | 'markdown' | 'notes' | 'mindmap' | 'viewer'
 
 export interface Note {
   id: string

@@ -356,30 +356,7 @@ function MermaidBlock({ code, theme }: { code: string; theme: ThemeMode }) {
   return <div className="mermaid-block" dangerouslySetInnerHTML={{ __html: svg }} />
 }
 
-function jsonToMermaidMindmap(data: JsonValue, rootLabel = 'root') {
-  const lines: string[] = []
-  const safe = (s: string) => String(s).replace(/\n/g, ' ').replace(/\(/g, '[').replace(/\)/g, ']')
 
-  const walk = (node: JsonValue, label: string, depth: number) => {
-    const indent = '  '.repeat(depth)
-    // show label as a node
-    if (node === null || typeof node !== 'object') {
-      lines.push(`${indent}${safe(label)}: ${safe(String(node))}`)
-      return
-    }
-    // object or array
-    lines.push(`${indent}${safe(label)}`)
-    if (Array.isArray(node)) {
-      node.forEach((item, idx) => walk(item, `[${idx}]`, depth + 1))
-      return
-    }
-    Object.entries(node).forEach(([k, v]) => walk(v as JsonValue, k, depth + 1))
-  }
-
-  lines.push('mindmap')
-  walk(data, rootLabel, 1)
-  return lines.join('\n')
-}
 
 function SearchBar({
   mode,
@@ -544,7 +521,9 @@ function TreeTab({
       </div>
       <div style={{ height: '100%' }}>
         {parsedDoc.data ? (
+          // @ts-ignore - react-window List typing mismatch with our row props
           <List
+            // @ts-ignore - allow passing ref for imperative API
             ref={listRef}
             className="virtual-list"
             defaultHeight={520}

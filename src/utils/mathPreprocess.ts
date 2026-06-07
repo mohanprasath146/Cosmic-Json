@@ -20,12 +20,12 @@ export function preprocessMath(markdown: string) {
   if (!markdown) return markdown
 
   // render display math first ($$...$$)
-  let out = markdown.replace(/\$\$([\s\S]+?)\$\$/g, (_m, expr) => {
+  let out = markdown.replace(/\$\$([\s\S]+?)\$\$/g, (_match, expr) => {
     return `\n\n${renderDisplay(expr)}\n\n`
   })
 
   // render inline math $...$ (avoid $$ which are already handled)
-  out = out.replace(/(^|[^$])\$([^\n$]+?)\$(?!\$)/g, (m, p1, expr) => {
+  out = out.replace(/(^|[^$])\$([^\n$]+?)\$(?!\$)/g, (_match, p1, expr) => {
     return `${p1}${renderInline(expr)}`
   })
 

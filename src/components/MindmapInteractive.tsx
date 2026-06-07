@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 
 export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: { data: any; onNodeSelect?: (info: { path: string; value: any }) => void; onApiReady?: (api: any) => void }) {
@@ -24,7 +24,7 @@ export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: {
     const g = svg.append('g')
 
     // convert JSON to hierarchy with path tracking
-    function toNode(val: any, name = 'root', path = '$') {
+    function toNode(val: any, name = 'root', path = '$'): any {
       if (val === null || typeof val !== 'object') {
         return { name: `${name}: ${String(val)}`, path, value: val }
       }
@@ -86,6 +86,7 @@ export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: {
 
       // reattach click handler for enters
       nodeGroup.selectAll('g.node').on('click', function (event: any, d: any) {
+        void event
         if (d.children) {
           d._children = d.children
           d.children = null

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
@@ -56,7 +56,8 @@ export default function RichMarkdownViewer({ markdown, theme }: { markdown: stri
             },
             // allow raw HTML (iframes) via rehype-raw above
             // handle code blocks (mermaid handled after render pass)
-            code({ inline, className, children }) {
+            code(props: any) {
+              const { inline, className, children } = props
               const language = (className || '').replace('language-', '')
               if (language === 'mermaid') {
                 // show code block placeholder; post-process will replace with mermaid SVG

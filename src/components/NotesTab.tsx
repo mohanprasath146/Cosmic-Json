@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Copy, Plus, Trash2, X, Maximize2, Minimize2, Check, Edit } from 'lucide-react'
+import { Copy, X, Maximize2, Minimize2, Check, Edit } from 'lucide-react'
 import { loadNotes, saveNotes } from '../utils/storage'
 import type { Note } from '../types'
 import '../index.css'
@@ -15,7 +15,6 @@ export default function NotesTab() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const colorInputRef = useRef<HTMLInputElement | null>(null)
-  const [colorTargetId, setColorTargetId] = useState<string | null>(null)
 
   useEffect(() => {
     saveNotes(notes)
@@ -39,7 +38,6 @@ export default function NotesTab() {
 
   const openColorPicker = (note: Note) => {
     setEditing(note)
-    setColorTargetId(note.id)
     if (colorInputRef.current) {
       try {
         colorInputRef.current.value = note.color || '#000000'
@@ -89,7 +87,7 @@ export default function NotesTab() {
               key={n.id}
               className="note-card"
               style={{ '--accent': n.color, '--dot-color': n.color } as React.CSSProperties}
-              onClick={() => { setViewerOpen(true); setViewerId(n.id) }}
+              onClick={() => openViewer(n.id)}
             >
               <div className="note-card-header">
                 <button
