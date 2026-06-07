@@ -40,6 +40,7 @@ interface TreeNodeProps {
   revealedSecrets: Set<string>
   onToggle: (path: string) => void
   onRevealSecret: (path: string) => void
+  showLineNumber?: boolean
 }
 
 function isSecretKey(key: string): boolean {
@@ -147,6 +148,7 @@ export function TreeNode({
   revealedSecrets,
   onToggle,
   onRevealSecret,
+  showLineNumber = false,
 }: TreeNodeProps) {
   return (
     <div style={style} className="tree-row-wrapper">
@@ -154,7 +156,7 @@ export function TreeNode({
         className={clsx('tree-row', !isMatched && 'is-dimmed')}
         onClick={() => row.expandable && onToggle(row.path)}
       >
-        <div className="tree-line-number">{row.lineNumber}</div>
+        {showLineNumber ? <div className="tree-line-number">{row.lineNumber}</div> : null}
         <div className="tree-row-content" style={{ paddingLeft: row.depth * 16 }}>
           {Array.from({ length: row.depth }).map((_, guideIndex) => (
             <span key={`${row.path}-${guideIndex}`} className="indent-guide" style={{ left: guideIndex * 16 + 8 }} />

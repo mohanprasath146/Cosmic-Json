@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
@@ -7,14 +7,13 @@ import preprocessMath from '../utils/mathPreprocess'
 import mermaid from 'mermaid'
 
 export default function RichMarkdownViewer({ markdown, theme }: { markdown: string; theme: 'light' | 'dark' }) {
-  const [expanded, setExpanded] = useState(false)
   const previewRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     mermaid.initialize({ startOnLoad: false, theme: theme === 'dark' ? 'dark' : 'default', securityLevel: 'loose' })
   }, [theme])
 
-  // re-render mermaid diagrams after markdown updates
+  // re-render mermaid diagrams after markdown or HTML updates
   useEffect(() => {
     const container = previewRef.current
     if (!container) return
@@ -40,37 +39,27 @@ export default function RichMarkdownViewer({ markdown, theme }: { markdown: stri
   }, [markdown, theme])
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button className="chip-button" onClick={() => setExpanded((s) => !s)}>{expanded ? 'Collapse' : 'Expand'}</button>
-        <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Rendered view (supports Mermaid, images, iframes)</div>
-      </div>
-      <div ref={previewRef} style={{ padding: 12, overflow: 'auto', flex: 1 }}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight as any, rehypeRaw as any]}
-          components={{
-            // render images responsively
-            img({ node, ...props }) {
-              return <img src={String(props.src)} alt={String(props.alt)} style={{ maxWidth: '100%', height: 'auto', borderRadius: 8 }} />
-            },
-            // allow raw HTML (iframes) via rehype-raw above
-            // handle code blocks (mermaid handled after render pass)
-            code(props: any) {
-              const { inline, className, children } = props
-              const language = (className || '').replace('language-', '')
-              if (language === 'mermaid') {
-                // show code block placeholder; post-process will replace with mermaid SVG
-                return <pre><code className={className}>{String(children)}</code></pre>
-              }
-              if (inline) return <code>{children}</code>
-              return <pre><code className={className}>{children}</code></pre>
-            },
-          }}
-        >
-          {preprocessMath(markdown)}
-        </ReactMarkdown>
-      </div>
+    <div ref={previewRef} className="markdown-preview" style={{ height: '100%', padding: 12, overflow: 'auto', flex: 1 }}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight as any, rehypeRaw as any]}
+        components={{
+          img({ node, ...props }) {
+            return <img src={String(props.src)} alt={String(props.alt)} style={{ maxWidth: '100%', height: 'auto', borderRadius: 8 }} />
+          },
+          code(props: any) {
+            const { inline, className, children } = props
+            const language = (className || '').replace('language-', '')
+            if (language === 'mermaid') {
+              return <pre><code className={className}>{String(children)}</code></pre>
+            }
+            if (inline) return <code>{children}</code>
+            return <pre><code className={className}>{children}</code></pre>
+          },
+        }}
+      >
+        {preprocessMath(markdown)}
+      </ReactMarkdown>
     </div>
   )
 }

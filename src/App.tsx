@@ -1,12 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
-import mermaid from 'mermaid'
 import type { editor } from 'monaco-editor'
-import ReactMarkdown from 'react-markdown'
-import rehypeHighlight from 'rehype-highlight'
-import rehypeRaw from 'rehype-raw'
-import remarkGfm from 'remark-gfm'
-import preprocessMath from './utils/mathPreprocess'
 import { List } from 'react-window'
 const RichMarkdownViewer = lazy(() => import('./components/RichMarkdownViewer'))
 const MindmapInteractive = lazy(() => import('./components/MindmapInteractive'))
@@ -158,7 +152,6 @@ const TABS: Array<{ id: AppTab; label: string; icon: React.ElementType }> = [
   { id: 'raw', label: 'Raw', icon: Code2 },
   { id: 'table', label: 'Table', icon: Table2 },
   { id: 'mindmap', label: 'Mindmap', icon: Network },
-  { id: 'viewer', label: 'Viewer', icon: Eye },
   { id: 'notes', label: 'Notes', icon: Clipboard },
   { id: 'diff', label: 'Diff', icon: GitDiff },
   { id: 'markdown', label: 'Markdown', icon: FileText },
@@ -331,32 +324,6 @@ function buildTreeRows(data: JsonValue | null, expandedPaths: Set<string>) {
 function buildMatchedPathSet(results: SearchResult[]): Set<string> {
   return new Set(results.flatMap((entry) => [entry.path, entry.path.split('.').slice(0, -1).join('.') || '$']))
 }
-
-function MermaidBlock({ code, theme }: { code: string; theme: ThemeMode }) {
-  const [svg, setSvg] = useState<string>('')
-
-  useEffect(() => {
-    let active = true
-    try {
-      mermaid.initialize({ startOnLoad: false, theme: theme === 'dark' ? 'dark' : 'default', securityLevel: 'loose' })
-      const id = `mermaid-${Math.random().toString(36).slice(2)}`
-      void mermaid.render(id, code).then((result) => {
-        if (active) setSvg(result.svg)
-      }).catch(() => {
-        if (active) setSvg(`<pre>${code.replace(/</g, '&lt;')}</pre>`)
-      })
-    } catch (e) {
-      if (active) setSvg(`<pre>${code.replace(/</g, '&lt;')}</pre>`)
-    }
-    return () => {
-      active = false
-    }
-  }, [code, theme])
-
-  return <div className="mermaid-block" dangerouslySetInnerHTML={{ __html: svg }} />
-}
-
-
 
 function SearchBar({
   mode,
@@ -549,6 +516,7 @@ function TreeTab({
                 <TreeNode
                   style={style}
                   row={{ ...row, lineNumber: row.lineNumber, expanded: expandedPaths.has(row.path) }}
+                  showLineNumber={false}
                   revealedSecrets={secrets as Set<string>}
                   onRevealSecret={onRevealSecret as (path: string) => void}
                   onToggle={toggle}
@@ -904,7 +872,6 @@ function MarkdownTab({
   tooltipSettings: TooltipSettings
 }) {
   const editorRef = useRef<MonacoEditorInstance | null>(null)
-  const previewRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [expandedPane, setExpandedPane] = useState<SplitPaneSide | null>(null)
@@ -928,51 +895,6 @@ function MarkdownTab({
     window.document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => window.document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
-
-  useEffect(() => {
-    const editor = editorRef.current
-    const preview = previewRef.current
-    if (!editor || !preview) {
-      return
-    }
-
-    let syncing = false
-    const editorDisposable = editor.onDidScrollChange(() => {
-      if (syncing) {
-        return
-      }
-      syncing = true
-      const maxEditor = Math.max(editor.getScrollHeight() - editor.getLayoutInfo().height, 1)
-      const ratio = editor.getScrollTop() / maxEditor
-      const maxPreview = Math.max(preview.scrollHeight - preview.clientHeight, 1)
-      preview.scrollTop = ratio * maxPreview
-      queueMicrotask(() => {
-        syncing = false
-      })
-    })
-
-    const onPreviewScroll = () => {
-      if (syncing) {
-        return
-      }
-      syncing = true
-      const maxPreview = Math.max(preview.scrollHeight - preview.clientHeight, 1)
-      const ratio = preview.scrollTop / maxPreview
-      const maxEditor = Math.max(editor.getScrollHeight() - editor.getLayoutInfo().height, 1)
-      editor.setScrollTop(ratio * maxEditor)
-      queueMicrotask(() => {
-        syncing = false
-      })
-    }
-
-    preview.addEventListener('scroll', onPreviewScroll)
-    return () => {
-      editorDisposable.dispose()
-      preview.removeEventListener('scroll', onPreviewScroll)
-    }
-  }, [])
-
-  
 
   return (
     <section ref={containerRef} className="content-panel panel markdown-grid">
@@ -1039,9 +961,8 @@ function MarkdownTab({
           </Suspense>
         </div>
         <div
-          className={clsx('pane split-pane markdown-preview', expandedPane === 'left' && 'is-hidden')}
-          ref={previewRef}
-          style={{ height: '100%', overflow: 'auto', minHeight: 0 }}
+          className={clsx('pane split-pane', expandedPane === 'left' && 'is-hidden')}
+          style={{ height: '100%', overflow: 'hidden', minHeight: 0 }}
         >
           <div className="split-pane-toolbar">
             <span>Preview</span>
@@ -1055,27 +976,9 @@ function MarkdownTab({
               />
             </Tooltip.Provider>
           </div>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight as any, rehypeRaw as any]}
-              components={{
-                code(props) {
-                  const { children, className } = props
-                  const language = className?.replace('language-', '') ?? ''
-                  const code = String(children).replace(/\n$/, '')
-                  if (language === 'mermaid') {
-                    return <MermaidBlock code={code} theme={theme} />
-                  }
-                  return (
-                    <pre>
-                      <code className={className}>{children}</code>
-                    </pre>
-                  )
-                },
-              }}
-            >
-              {preprocessMath(markdownText)}
-            </ReactMarkdown>
+          <Suspense fallback={<div className="empty-state flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+            <RichMarkdownViewer markdown={markdownText} theme={theme} />
+          </Suspense>
         </div>
       </div>
     </section>
@@ -2750,14 +2653,6 @@ function App() {
             </section>
           )}
 
-          {activeTab === 'markdown' && (
-            <MarkdownTab
-              theme={theme}
-              markdownText={markdownText}
-              onChange={setMarkdownText}
-              tooltipSettings={tooltipSettings}
-            />
-          )}
           {activeTab === 'notes' && (
             <Suspense fallback={<div className="empty-state">Loading notes…</div>}>
               <NotesTab />
@@ -2767,7 +2662,7 @@ function App() {
             <section className="content-panel panel" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 8 }}>
               <div style={{ padding: 8, height: '100%', minHeight: 0 }}>
                 <Suspense fallback={<div className="empty-state">Loading mindmap…</div>}>
-                  <MindmapInteractive data={parsedDocument.data} onNodeSelect={(info) => setSelectedMindNode(info)} onApiReady={(api) => setMindmapApi(api)} />
+                  <MindmapInteractive data={parsedDocument.data} theme={theme} onNodeSelect={(info) => setSelectedMindNode(info)} onApiReady={(api) => setMindmapApi(api)} />
                 </Suspense>
                 <div style={{ position: 'absolute', right: 28, top: 88, display: 'flex', gap: 8 }}>
                   <button className="chip-button" onClick={() => mindmapApi?.zoomIn()}>Zoom +</button>
@@ -2792,14 +2687,13 @@ function App() {
               </div>
             </section>
           )}
-          {activeTab === 'viewer' && (
-            <section className="content-panel panel">
-              <div style={{ height: '100%', minHeight: 0 }}>
-                <Suspense fallback={<div className="empty-state">Loading viewer…</div>}>
-                  <RichMarkdownViewer markdown={markdownText} theme={theme} />
-                </Suspense>
-              </div>
-            </section>
+          {activeTab === 'markdown' && (
+            <MarkdownTab
+              theme={theme}
+              markdownText={markdownText}
+              onChange={setMarkdownText}
+              tooltipSettings={tooltipSettings}
+            />
           )}
         </main>
       </Dialog.Root>

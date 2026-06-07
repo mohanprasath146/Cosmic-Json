@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 
-export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: { data: any; onNodeSelect?: (info: { path: string; value: any }) => void; onApiReady?: (api: any) => void }) {
+export default function MindmapInteractive({ data, theme, onNodeSelect, onApiReady }: { data: any; theme: 'light' | 'dark'; onNodeSelect?: (info: { path: string; value: any }) => void; onApiReady?: (api: any) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: {
       const linkSel = linkGroup.selectAll('path.link').data(links, (d: any) => keyForNode(d.target))
       linkSel.exit().remove()
       const linkEnter = linkSel.enter().append('path').attr('class', 'link').attr('fill', 'none')
-        .attr('stroke', 'rgba(200,200,200,0.18)').attr('stroke-width', 1.0)
+        .attr('stroke', 'var(--border-default)').attr('stroke-width', 1.0).attr('stroke-opacity', 0.6)
       const linkMerged = linkEnter.merge(linkSel as any)
       if (useTransition) linkMerged.transition().duration( animate ? 300 : 0 ).attr('d', d3.linkHorizontal().x((d: any) => d.y).y((d: any) => d.x) as any)
       else linkMerged.attr('d', d3.linkHorizontal().x((d: any) => d.y).y((d: any) => d.x) as any)
@@ -71,7 +71,7 @@ export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: {
       nodeSel.exit().remove()
 
       const nodeEnter = nodeSel.enter().append('g').attr('class', (d: any) => `node depth-${d.depth}`)
-      nodeEnter.append('circle').attr('r', 6).attr('fill', '#222').attr('stroke', 'var(--border-default)')
+      nodeEnter.append('circle').attr('r', 6).attr('fill', 'var(--bg-card)').attr('stroke', 'var(--border-default)')
       nodeEnter.append('text')
         .attr('dy', '0.31em')
         .attr('x', (d: any) => d.children ? -10 : 10)
@@ -151,7 +151,7 @@ export default function MindmapInteractive({ data, onNodeSelect, onApiReady }: {
       try { ro.disconnect() } catch {}
       try { svg.remove() } catch {}
     }
-  }, [data])
+  }, [data, theme])
 
   return (
     <div style={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
