@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Copy, X, Maximize2, Minimize2, Check, Edit } from 'lucide-react'
+import * as Tooltip from '@radix-ui/react-tooltip'
+import { Copy, X, Maximize2, Minimize2, Check, Edit, Trash2 } from 'lucide-react'
 import { loadNotes, saveNotes } from '../utils/storage'
 import type { Note } from '../types'
+import { IconButton } from './IconButton'
 import '../index.css'
 
 function uid() {
@@ -16,14 +18,33 @@ export default function NotesTab() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const colorInputRef = useRef<HTMLInputElement | null>(null)
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false)
+
+  const handleToggleFullscreen = () => {
+    if (!containerRef.current) return
+    if (!window.document.fullscreenElement) {
+      void containerRef.current.requestFullscreen().then(() => setIsBrowserFullscreen(true))
+    } else {
+      void window.document.exitFullscreen().then(() => setIsBrowserFullscreen(false))
+    }
+  }
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsBrowserFullscreen(!!window.document.fullscreenElement)
+    }
+    window.document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => window.document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
   useEffect(() => {
     saveNotes(notes)
   }, [notes])
 
   const createNew = () => {
     const now = Date.now()
-    const n: Note = { id: uid(), title: 'Untitled', content: '', color: '#8cc4ff', createdAt: now, updatedAt: now }
-    setNotes((s) => [n, ...s])
+    const n: Note = { id: uid(), title: '', content: '', color: '#8cc4ff', createdAt: now, updatedAt: now }
     setEditing(n)
     setDialogOpen(true)
   }
@@ -69,12 +90,32 @@ export default function NotesTab() {
   }
 
   return (
-    <div className="content-panel panel notes-panel">
+    <div ref={containerRef} className="content-panel panel notes-panel" style={{ display: 'block', position: 'relative' }}>
       {/* Animated background elements */}
       <div className="ambient-glow" />
       <div className="dot-pattern" />
 
-      <div className="notes-container">
+      <div className="panel-header" style={{ position: 'relative', zIndex: 10 }}>
+        <div className="panel-actions">
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <IconButton
+                icon={isBrowserFullscreen ? Minimize2 : Maximize2}
+                onClick={handleToggleFullscreen}
+                title={isBrowserFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content className="tooltip-content" side="bottom">
+                {isBrowserFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                <Tooltip.Arrow className="tooltip-arrow" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </div>
+      </div>
+
+      <div className="notes-container" style={{ overflowY: 'auto', maxHeight: 'calc(100% - 40px)' }}>
         <div className="notes-header">
           <div className="notes-logo">NOTES</div>
           <div className="header-stats">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</div>
@@ -114,14 +155,14 @@ export default function NotesTab() {
                     title="Copy"
                     onClick={(e) => { e.stopPropagation(); copyContent(n.content) }}
                   >
-                    📋
+                    <Copy size={13} />
                   </button>
                   <button
                     className="icon-mini"
                     title="Delete"
                     onClick={(e) => { e.stopPropagation(); removeNote(n.id) }}
                   >
-                    🗑
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
@@ -153,8 +194,12 @@ export default function NotesTab() {
         )}
       </div>
 
-        {/* Floating Action Button */}
-      <button className="fab" onClick={createNew} aria-label="New note">
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={createNew}
+        aria-label="New note"
+      >
         +
       </button>
 
@@ -168,7 +213,7 @@ export default function NotesTab() {
           >
             <Dialog.Title className="sr-only">Edit note</Dialog.Title>
             <Dialog.Description className="sr-only">Editor for creating and updating notes</Dialog.Description>
-              <div className="sheet-header">
+            <div className="sheet-header">
               <input
                 className="sheet-color"
                 type="color"
@@ -199,7 +244,12 @@ export default function NotesTab() {
                   title="Save"
                   onClick={() => {
                     if (!editing) return
-                    updateNote({ ...editing, updatedAt: Date.now() })
+                    const exists = notes.some((n) => n.id === editing.id)
+                    if (exists) {
+                      updateNote({ ...editing, title: editing.title.trim() || 'Untitled', updatedAt: Date.now() })
+                    } else {
+                      setNotes((s) => [{ ...editing, title: editing.title.trim() || 'Untitled', updatedAt: Date.now() }, ...s])
+                    }
                     setDialogOpen(false)
                     setIsFullscreen(false)
                   }}
@@ -227,7 +277,9 @@ export default function NotesTab() {
                 onChange={(e) => editing && setEditing({ ...editing, content: e.target.value })}
                 className="sheet-textarea"
                 placeholder="Write your note here..."
+                wrap="on"
               />
+
             </div>
 
             <div className="sheet-footer">

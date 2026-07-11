@@ -37,10 +37,13 @@ interface TreeNodeProps {
   style: CSSProperties
   row: TreeNodeRow
   isMatched: boolean
+  isCurrent?: boolean
   revealedSecrets: Set<string>
   onToggle: (path: string) => void
   onRevealSecret: (path: string) => void
   showLineNumber?: boolean
+  hasActiveSearch?: boolean
+  showTypeBadges?: boolean
 }
 
 function isSecretKey(key: string): boolean {
@@ -145,15 +148,23 @@ export function TreeNode({
   style,
   row,
   isMatched,
+  isCurrent = false,
   revealedSecrets,
   onToggle,
   onRevealSecret,
   showLineNumber = false,
+  hasActiveSearch = false,
+  showTypeBadges = true,
 }: TreeNodeProps) {
   return (
     <div style={style} className="tree-row-wrapper">
       <div
-        className={clsx('tree-row', !isMatched && 'is-dimmed')}
+        className={clsx(
+          'tree-row',
+          hasActiveSearch && !isMatched && 'is-dimmed',
+          hasActiveSearch && isCurrent && 'is-current-match',
+          hasActiveSearch && isMatched && !isCurrent && 'is-match'
+        )}
         onClick={() => row.expandable && onToggle(row.path)}
       >
         {showLineNumber ? <div className="tree-line-number">{row.lineNumber}</div> : null}
@@ -178,32 +189,34 @@ export function TreeNode({
             {!row.expanded && row.expandable ? (
               <span className="collapsed-badge">{Array.isArray(row.value) ? `[ ${row.childCount} ]` : `{ ${row.childCount} }`}</span>
             ) : null}
-            <span className="type-badge">{row.typeLabel}</span>
-          </div>
-          <div className="tree-actions">
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={(event) => {
-                event.stopPropagation()
-                copyText(JSON.stringify(row.value, null, 2))
-              }}
-              title="Copy value"
-            >
-              <Copy size={11} />
-            </button>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={(event) => {
-                event.stopPropagation()
-                copyText(row.path)
-                debouncedToast('Path copied')
-              }}
-              title="Copy path"
-            >
-              <Route size={11} />
-            </button>
+            {showTypeBadges ? <span className="type-badge">{row.typeLabel}</span> : null}
+            <div className="tree-actions" style={{ display: 'flex', flexShrink: 0 }}>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  copyText(JSON.stringify(row.value, null, 2))
+                }}
+                title="Copy value"
+                aria-label="Copy value"
+              >
+                <Copy size={11} />
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  copyText(row.path)
+                  debouncedToast('Path copied')
+                }}
+                title="Copy path"
+                aria-label="Copy path"
+              >
+                <Route size={11} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,19 @@
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 
-export default function MindmapInteractive({ data, theme, onNodeSelect, onApiReady }: { data: any; theme: 'light' | 'dark'; onNodeSelect?: (info: { path: string; value: any }) => void; onApiReady?: (api: any) => void }) {
+export default function MindmapInteractive({
+  data,
+  theme,
+  fontSize,
+  onNodeSelect,
+  onApiReady,
+}: {
+  data: any
+  theme: 'light' | 'dark'
+  fontSize?: number
+  onNodeSelect?: (info: { path: string; value: any }) => void
+  onApiReady?: (api: any) => void
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -10,7 +22,7 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
     const container = containerRef.current
     if (!container) return
     // remove only any prior svg we added (avoid clobbering React-managed nodes)
-    try { d3.select(container).select('svg').remove() } catch {}
+    try { d3.select(container).select('svg').remove() } catch { }
 
     let vw = container.clientWidth || 800
     let vh = container.clientHeight || 600
@@ -63,7 +75,7 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
       const linkEnter = linkSel.enter().append('path').attr('class', 'link').attr('fill', 'none')
         .attr('stroke', 'var(--border-default)').attr('stroke-width', 1.0).attr('stroke-opacity', 0.6)
       const linkMerged = linkEnter.merge(linkSel as any)
-      if (useTransition) linkMerged.transition().duration( animate ? 300 : 0 ).attr('d', d3.linkHorizontal().x((d: any) => d.y).y((d: any) => d.x) as any)
+      if (useTransition) linkMerged.transition().duration(animate ? 300 : 0).attr('d', d3.linkHorizontal().x((d: any) => d.y).y((d: any) => d.x) as any)
       else linkMerged.attr('d', d3.linkHorizontal().x((d: any) => d.y).y((d: any) => d.x) as any)
 
       // NODES: join by node path
@@ -76,12 +88,14 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
         .attr('dy', '0.31em')
         .attr('x', (d: any) => d.children ? -10 : 10)
         .attr('text-anchor', (d: any) => d.children ? 'end' : 'start')
-        .style('font-size', 12)
+        .style('font-size', fontSize ?? 12)
+        .style('font-family', "'DM Mono', monospace")
         .style('fill', 'var(--text-primary)')
         .text((d: any) => String(d.data.name))
 
+
       const nodeMerged = nodeEnter.merge(nodeSel as any)
-      if (useTransition) nodeMerged.transition().duration( animate ? 300 : 0 ).attr('transform', (d: any) => `translate(${d.y}, ${d.x})`)
+      if (useTransition) nodeMerged.transition().duration(animate ? 300 : 0).attr('transform', (d: any) => `translate(${d.y}, ${d.x})`)
       else nodeMerged.attr('transform', (d: any) => `translate(${d.y}, ${d.x})`)
 
       // reattach click handler for enters
@@ -95,7 +109,7 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
           d._children = null
         }
         updateView(nodes.length <= TRANSITION_THRESHOLD)
-        try { if (onNodeSelect) onNodeSelect({ path: d.data.path, value: d.data.value }) } catch {}
+        try { if (onNodeSelect) onNodeSelect({ path: d.data.path, value: d.data.value }) } catch { }
       })
     }
 
@@ -110,6 +124,26 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
     })
     svg.call(zoom as any)
 
+    const collapseNode = (d: any) => {
+      if (d.children) {
+        d._children = d.children
+        d.children = null
+      }
+      if (d._children) {
+        d._children.forEach(collapseNode)
+      }
+    }
+
+    const expandNode = (d: any) => {
+      if (d._children) {
+        d.children = d._children
+        d._children = null
+      }
+      if (d.children) {
+        d.children.forEach(expandNode)
+      }
+    }
+
     // expose controls
     const api = {
       zoomIn: () => {
@@ -121,12 +155,22 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
       reset: () => {
         svg.transition().duration(400).call(zoom.transform as any, d3.zoomIdentity.translate(initialY, initialX).scale(1))
       },
+      expandAll: () => {
+        expandNode(root)
+        updateView(true)
+      },
+      collapseAll: () => {
+        if (root.children) {
+          root.children.forEach((c: any) => collapseNode(c))
+        }
+        updateView(true)
+      }
     }
 
-    ;(MindmapInteractive as any)._api = api
+      ; (MindmapInteractive as any)._api = api
     try {
       if (onApiReady) onApiReady(api)
-    } catch {}
+    } catch { }
 
     // initial render
     updateView(false)
@@ -145,11 +189,11 @@ export default function MindmapInteractive({ data, theme, onNodeSelect, onApiRea
         // ignore
       }
     })
-    try { ro.observe(container) } catch {}
+    try { ro.observe(container) } catch { }
 
     return () => {
-      try { ro.disconnect() } catch {}
-      try { svg.remove() } catch {}
+      try { ro.disconnect() } catch { }
+      try { svg.remove() } catch { }
     }
   }, [data, theme])
 

@@ -19,6 +19,16 @@ export interface ThemeCustom {
   borderDefault: string
 }
 
+export type EditorWordWrapMode = 'off' | 'wordWrapColumn'
+
+export interface EditorSettings {
+  fontSize: number
+  wordWrapEnabled: boolean
+  wordWrapMode: EditorWordWrapMode
+  showTypeBadges: boolean
+}
+
+
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
 
